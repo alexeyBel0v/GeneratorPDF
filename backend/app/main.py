@@ -1,7 +1,7 @@
 import asyncio
 import sys
+import os
 
-# ИСПРАВЛЕНИЕ ДЛЯ PYTHON 3.13 НА WINDOWS - ИСПОЛЬЗУЕМ Proactor
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -14,14 +14,12 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="PDF Generator Pro",
-    version="1.0.0"
-)
+app = FastAPI(title="PDF Generator Pro", version="1.0.0")
 
+# ИЗМЕНЕНО: Разрешаем запросы со всех доменов (для работы Vercel)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,14 +30,10 @@ app.include_router(ai_router, prefix="/ai")
 
 @app.get("/")
 async def root():
-    return {"message": "PDF Generator Pro API", "status": "ok"}
+    return {"message": "API is running", "status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info(f"Запуск сервера на http://127.0.0.1:8000 (Python {sys.version})")
-    uvicorn.run(
-        "app.main:app",
-        host="127.0.0.1",
-        port=8000,
-        log_level="info"
-    )
+    # ИЗМЕНЕНО: Берем порт из переменной окружения Railway
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
