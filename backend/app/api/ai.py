@@ -11,12 +11,11 @@ class AIRequest(BaseModel):
 
 @router.post("/generate-text")
 async def generate_ai_text(request: AIRequest):
-    # Теперь мы НИКОГДА не пишем ключ здесь буквами.
-    # Мы берем его из переменной окружения Railway.
+    # Берем ключ ТОЛЬКО из переменных Railway
     api_key = os.getenv("OPENROUTER_API_KEY")
     
     if not api_key:
-        raise HTTPException(status_code=500, detail="Ключ не найден в переменных Railway!")
+        raise HTTPException(status_code=500, detail="Ошибка: OPENROUTER_API_KEY не задан в Railway!")
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -35,7 +34,9 @@ async def generate_ai_text(request: AIRequest):
             
             data = response.json()
             if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail=data.get('error', {}).get('message'))
+                # Если OpenRouter вернет ошибку, мы увидим её текст
+                error_msg = data.get('error', {}).get('message', 'Unknown Error')
+                raise HTTPException(status_code=response.status_code, detail=error_msg)
 
             return {"text": data['choices'][0]['message']['content'], "success": True}
     except Exception as e:
