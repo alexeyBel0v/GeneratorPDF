@@ -7,7 +7,8 @@ import json
 router = APIRouter()
 
 # Берем из Railway или используем твой ключ напрямую для верности
-API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
+RAW_KEY = "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"
+API_KEY = os.getenv("OPENROUTER_API_KEY", RAW_KEY).strip()
 
 class AIRequest(BaseModel):
     prompt: str
