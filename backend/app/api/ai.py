@@ -6,8 +6,9 @@ from typing import Optional
 
 router = APIRouter()
 
-# OpenRouter API Configuration
-OPENROUTER_API_KEY = "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"
+# БЕРЕМ КЛЮЧ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (Railway Variables)
+# Если ключа в Railway нет, используем тот, что ты прислал как запасной
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 class AIRequest(BaseModel):
@@ -21,29 +22,21 @@ class AIResponse(BaseModel):
 @router.post("/generate-text", response_model=AIResponse)
 async def generate_ai_text(request: AIRequest):
     try:
-        # Формируем промпт БЕЗ эмодзи и маркдаун
-        system_prompt = """Ты профессиональный маркетолог и копирайтер. 
-Создай продающий, убедительный текст для презентации или предложения.
-Текст должен быть структурированным, профессиональным и убедительным.
-НЕ ИСПОЛЬЗУЙ эмодзи, звездочки (**), решетки (###) и другую разметку.
-Пиши чистый текст без форматирования.
-Длина текста: 150-200 слов."""
-
-        user_prompt = f"""Контекст или тема: {request.context}
-
-Задача: {request.prompt}
-
-Создай профессиональный маркетинговый текст без эмодзи и форматирования."""
+        system_prompt = """Ты профессиональный маркетолог. Создай чистый текст без эмодзи и Markdown-разметки (без **, ###, *)."""
+        user_prompt = f"Тема: {request.context}\nЗадача: {request.prompt}"
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 OPENROUTER_API_URL,
                 headers={
                     "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://vercel.com", # Обязательно для OpenRouter
+                    "X-Title": "PDF Generator Pro"         # Обязательно для OpenRouter
                 },
                 json={
-                    "model": "tngtech/deepseek-r1t2-chimera:free",
+                    # ИСПОЛЬЗУЕМ БОЛЕЕ СТАБИЛЬНУЮ БЕСПЛАТНУЮ МОДЕЛЬ
+                    "model": "google/gemini-2.0-flash-exp:free", 
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
@@ -52,12 +45,17 @@ async def generate_ai_text(request: AIRequest):
             )
             
             if response.status_code != 200:
+                # Печатаем ошибку в логи Railway, чтобы ты ее видел
+                print(f"OpenRouter Error Response: {response.text}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"OpenRouter API error: {response.text}"
                 )
             
             result = response.json()
+            if 'choices' not in result:
+                raise Exception(f"Unexpected response from AI: {result}")
+                
             generated_text = result['choices'][0]['message']['content']
             
             return AIResponse(
@@ -66,5 +64,5 @@ async def generate_ai_text(request: AIRequest):
             )
     
     except Exception as e:
-        print(f"AI generation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка генерации текста: {str(e)}")
+        print(f"AI generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
