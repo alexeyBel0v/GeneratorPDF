@@ -4,7 +4,7 @@ import "./App.css";
 
 // Умный выбор адреса: если в Vercel задана переменная, берем её. 
 // Если нет (на ПК) — стучимся в локальный сервер.
-const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+const API_URL = "https://generatorpdf-production.up.railway.app";
 
 interface StyleOption {
   id: string;
