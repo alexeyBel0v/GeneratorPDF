@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import axios from "axios";
 import "./App.css";
 
+// Умный выбор адреса: если в Vercel задана переменная, берем её. 
+// Если нет (на ПК) — стучимся в локальный сервер.
+const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+
 interface StyleOption {
   id: string;
   name: string;
@@ -88,8 +92,9 @@ function App() {
       setError(null);
       setSuccess(false);
 
+      // ИСПОЛЬЗУЕМ ПЕРЕМЕННУЮ API_URL
       const response = await axios.post(
-        "http://127.0.0.1:8000/generate",
+        `${API_URL}/generate`,
         formData,
         {
           responseType: "blob",
@@ -108,7 +113,7 @@ function App() {
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Ошибка при генерации PDF. Попробуйте еще раз.");
+      setError(err.response?.data?.detail || "Ошибка при генерации PDF. Проверьте, запущен ли бэкенд.");
     } finally {
       setLoading(false);
     }
@@ -124,8 +129,9 @@ function App() {
     setAiResult("");
 
     try {
+      // ИСПОЛЬЗУЕМ ПЕРЕМЕННУЮ API_URL
       const response = await axios.post<AIResponse>(
-        "http://127.0.0.1:8000/ai/generate-text",
+        `${API_URL}/ai/generate-text`,
         {
           prompt: aiPrompt,
           context: aiContext,
@@ -143,7 +149,7 @@ function App() {
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.detail || "Ошибка при генерации текста ИИ");
+      alert(err.response?.data?.detail || "Ошибка при генерации текста ИИ. Проверьте связь с сервером.");
     } finally {
       setAiLoading(false);
     }
@@ -328,7 +334,7 @@ function App() {
           <div className="inline-block bg-white/10 backdrop-blur-sm px-8 py-4 rounded-2xl border border-white/20">
             <p className="text-gray-200 text-lg mb-2">Сделано с ❤️ для вас</p>
             <a 
-              href="https://github.com/yourusername" 
+              href="https://github.com/alexeyBel0v" 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
